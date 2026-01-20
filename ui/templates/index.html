@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic Biosafety Level Predictor</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+
+<body>
+
+    <div class="background-overlay"></div>
+
+    <div class="container">
+        <header>
+            <div class="logo-area">
+                <i data-lucide="biohazard" class="hazard-icon"></i>
+                <h1>Biosafety Risk Model</h1>
+            </div>
+            <p class="subtitle">AI-Driven Pathogen Risk Assessment & BSL Prediction</p>
+        </header>
+
+        <main>
+            <div class="input-grid">
+                <div class="input-group">
+                    <label for="r0"><i data-lucide="activity"></i> R₀ (Reproduction Number)</label>
+                    <input id="r0" type="number" step="0.1" value="2.0">
+                </div>
+
+                <div class="input-group">
+                    <label for="cfr"><i data-lucide="percent"></i> CFR (Case Fatality Rate %)</label>
+                    <input id="cfr" type="number" value="3">
+                </div>
+
+                <div class="input-group">
+                    <label for="mutation"><i data-lucide="dna"></i> Mutation Rate</label>
+                    <input id="mutation" type="number" step="0.05" value="0.2">
+                </div>
+
+                <div class="input-group">
+                    <label for="stage"><i data-lucide="thermometer"></i> Outbreak Stage</label>
+                    <select id="stage">
+                        <option value="emerging">Emerging</option>
+                        <option value="peak">Peak</option>
+                        <option value="controlled">Controlled</option>
+                    </select>
+                </div>
+
+                <div class="input-group">
+                    <label for="transmission"><i data-lucide="wind"></i> Transmission Mode</label>
+                    <select id="transmission">
+                        <option value="1">Contact</option>
+                        <option value="2">Droplet</option>
+                        <option value="3">Airborne</option>
+                    </select>
+                </div>
+
+                <div class="input-group">
+                    <label for="countermeasures"><i data-lucide="shield-check"></i> Countermeasures</label>
+                    <select id="countermeasures">
+                        <option value="1">Available</option>
+                        <option value="0">Not Available</option>
+                    </select>
+                </div>
+            </div>
+
+            <button id="predict-btn" onclick="predict()">
+                <span class="btn-text">Predict BSL</span>
+                <i data-lucide="arrow-right"></i>
+            </button>
+
+            <div class="result-container" id="result-container">
+                <div id="loading" class="loading-area-feedback hidden">
+                    <div class="spinner"></div>
+                    <p>Analyzing risk metrics...</p>
+                </div>
+                <div id="result-card" class="result-card hidden">
+                    <div class="result-header">
+                        <span id="bsl-badge" class="bsl-badge">BSL-?</span>
+                        <h3>Analysis Complete</h3>
+                    </div>
+                    <div class="result-body">
+                        <div class="metric">
+                            <span class="label">Calculated Risk Score</span>
+                            <span id="risk-score" class="value">-</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <p>&copy; 2026 Biosafety Intelligence System. For research purposes only.</p>
+        </footer>
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        function predict() {
+            const btn = document.getElementById("predict-btn");
+            const resultCard = document.getElementById("result-card");
+            const loading = document.getElementById("loading");
+
+            // UI Feedback
+            btn.disabled = true;
+            resultCard.classList.add("hidden");
+            loading.classList.remove("hidden");
+
+            fetch("/predict", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    R0: parseFloat(document.getElementById("r0").value),
+                    CFR: parseFloat(document.getElementById("cfr").value),
+                    mutation_rate: parseFloat(document.getElementById("mutation").value),
+                    transmission: parseInt(document.getElementById("transmission").value),
+                    host_range: 1,
+                    env_stability: 0.3,
+                    countermeasures: parseInt(document.getElementById("countermeasures").value),
+                    stage: document.getElementById("stage").value
+                })
+            })
+                .then(res => res.json())
+                .then(data => {
+                    setTimeout(() => { // Small delay for "feel"
+                        loading.classList.add("hidden");
+                        resultCard.classList.remove("hidden");
+
+                        const bslBadge = document.getElementById("bsl-badge");
+                        const scoreValue = document.getElementById("risk-score");
+
+                        bslBadge.innerText = data.bsl;
+                        scoreValue.innerText = data.risk_score;
+
+                        // Set BSL color
+                        bslBadge.className = "bsl-badge " + data.bsl.toLowerCase().replace('-', '');
+
+                        btn.disabled = false;
+                    }, 800);
+                })
+                .catch(err => {
+                    console.error(err);
+                    loading.classList.add("hidden");
+                    btn.disabled = false;
+                });
+        }
+    </script>
+
+</body>
+
+</html>
